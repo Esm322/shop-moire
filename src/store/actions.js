@@ -21,4 +21,40 @@ export default {
     return axios.get('https://vue-moire.skillbox.cc/api/seasons')
       .then((response) => context.commit('setSeasons', response.data.items));
   },
+  loadCart(context) {
+    return axios.get('https://vue-moire.skillbox.cc/api/baskets', {
+      params: {
+        userAccessKey: context.state.userAccessKey,
+      },
+    })
+      .then((response) => {
+        if (!context.state.userAccessKey) {
+          localStorage.setItem('userAccessKey', response.data.user.accessKey);
+          context.commit('updateUserAccessKey', response.data.user.accessKey);
+        }
+        context.commit('updateProductsCartData', response.data.items);
+        context.commit('syncProductsCart');
+      });
+  },
+  addProductToCart(context, {
+    productId,
+    colorId,
+    sizeId,
+    amount,
+  }) {
+    return axios.get('https://vue-moire.skillbox.cc/api/baskets/products', {
+      productId: productId,
+      colorId: colorId,
+      sizeId: sizeId,
+      quantity: amount,
+    }, {
+      params: {
+        userAccessKey: context.state.userAccessKey,
+      },
+    })
+      .then((response) => {
+        context.commit('updateProductsCartData', response.data.items);
+        context.commit('syncProductsCart');
+      });
+  },
 };

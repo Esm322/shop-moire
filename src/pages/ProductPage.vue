@@ -3,9 +3,9 @@
     <div class="content__top">
       <ul class="breadcrumbs">
         <li class="breadcrumbs__item">
-          <a class="breadcrumbs__link" href="index.html">
+          <router-link :to="{name: 'main'}" class="breadcrumbs__link">
             Каталог
-          </a>
+          </router-link>
         </li>
         <li class="breadcrumbs__item">
           <a class="breadcrumbs__link" href="#">
@@ -27,8 +27,11 @@
           :alt="product[0].title">
         </div>
         <ul class="pics__list">
-          <li class="pics__item" v-for="image in getColors" :key="image.colorId">
-            <a href="" class="pics__link pics__link--current">
+          <li class="pics__item" v-for="image in getColors" :key="image.colorProductId">
+            <a href="" class="pics__link"
+            :class="{'pics__link--current': image.colorProductId === activeColorId}"
+            @click.prevent="changeImage(image.colorProductId)"
+            @keyup.enter="changeImage(image.colorProductId)">
               <img width="98" height="98" :src="image.image"
               :alt="product[0].title">
             </a>
@@ -42,20 +45,24 @@
           {{ product[0].title }}
         </h2>
         <div class="item__form">
-          <form class="form" action="#" method="POST">
+          <form class="form" action="#" method="POST"
+          @submit.prevent="addToCart">
             <div class="item__row item__row--center">
               <div class="form__counter">
-                <button type="button" aria-label="Убрать один товар">
+                <button type="button" aria-label="Убрать один товар"
+                :disabled="productCount === 1"
+                @click.prevent="dicrement">
                   <svg width="12" height="12" fill="currentColor">
                     <use xlink:href="#icon-minus"></use>
                   </svg>
                 </button>
 
                 <label>
-                  <input type="text" value="1" name="count">
+                  <input type="text" v-model.number="productCount" name="count">
                 </label>
 
-                <button type="button" aria-label="Добавить один товар">
+                <button type="button" aria-label="Добавить один товар"
+                @click.prevent="increment">
                   <svg width="12" height="12" fill="currentColor">
                     <use xlink:href="#icon-plus"></use>
                   </svg>
@@ -71,10 +78,14 @@
               <fieldset class="form__block">
                 <legend class="form__legend">Цвет</legend>
                 <ul class="colors colors--black">
-                  <li class="colors__item" v-for="color in getColors" :key="color.colorId">
-                    <label class="colors__label">
+                  <li class="colors__item" v-for="color in getColors" :key="color.colorProductId">
+                    <label class="colors__label"
+                    @click.prevent="changeImage(color.colorProductId)"
+                    @keyup.enter="changeImage(color.colorProductId)">
                       <input class="colors__radio sr-only" type="radio" name="color-item"
-                      :value="color.colorId">
+                      v-model="activeColorId"
+                      :value="color.colorProductId"
+                      :checked="activeColorId">
                       <span class="colors__value" :style="{'background-color': color.colorCode}">
                       </span>
                     </label>
@@ -85,7 +96,9 @@
               <fieldset class="form__block">
                 <legend class="form__legend">Размер</legend>
                 <label class="form__label form__label--small form__label--select">
-                  <select class="form__select" type="text" name="category">
+                  <select class="form__select" type="text" name="category"
+                  v-model.number="currentSizeId">
+                    <option disabled value="0">Выбрать</option>
                     <option :value="size.sizeId" v-for="size in getSizes" :key="size.sizeId">
                       {{ size.sizeTitle }}
                     </option>
@@ -104,52 +117,51 @@
       <div class="item__desc">
         <ul class="tabs">
           <li class="tabs__item">
-            <a class="tabs__link tabs__link--current">
+            <a class="tabs__link"
+            :class="{'tabs__link--current': currentTab === 'base-item-information'}"
+            @click.prevent="changeTab('base-item-information')"
+            @keyup.enter="changeTab('base-item-information')">
               Информация о товаре
             </a>
           </li>
           <li class="tabs__item">
-            <a class="tabs__link" href="#">
+            <a class="tabs__link"
+            :class="{'tabs__link--current': currentTab === 'base-item-delivery'}"
+            @click.prevent="changeTab('base-item-delivery')"
+            @keyup.enter="changeTab('base-item-delivery')">
               Доставка и возврат
             </a>
           </li>
         </ul>
 
-        <div class="item__content">
-          <h3>Состав:</h3>
+        <component :is="currentTab"/>
 
-          <p>
-            60% хлопок<br>
-            30% полиэстер<br>
-          </p>
-
-          <h3>Уход:</h3>
-
-          <p>
-            Машинная стирка при макс. 30ºC короткий отжим<br>
-            Гладить при макс. 110ºC<br>
-            Не использовать машинную сушку<br>
-            Отбеливать запрещено<br>
-            Не подвергать химчистке<br>
-          </p>
-
-        </div>
       </div>
     </section>
   </main>
 </template>
 
 <script>
+import BaseItemInformation from '@/components/BaseItemInformation.vue';
+import BaseItemDelivery from '@/components/BaseItemDelivery.vue';
 import axios from 'axios';
+import { mapActions } from 'vuex';
 
 export default {
   data() {
     return {
       productData: null,
 
+      currentTab: 'base-item-information',
+
+      productCount: 1,
       currentColorId: 0,
       currentSizeId: 0,
     };
+  },
+  components: {
+    BaseItemInformation,
+    BaseItemDelivery,
   },
   computed: {
     product() {
@@ -159,6 +171,7 @@ export default {
           categoryTitle: item.category.title,
           colorsGallery: item.colors.map((color) => {
             return {
+              colorProductId: color.id,
               colorId: color.color.id,
               colorCode: color.color.code,
               colorTitle: color.color.title,
@@ -181,14 +194,42 @@ export default {
     getSizes() {
       return this.product[0].sizes;
     },
+    activeColorId: {
+      get() {
+        return this.getColors[this.currentColorId].colorProductId;
+      },
+      set(id) {
+        const indexId = this.getColors.findIndex((item) => item.colorProductId === id);
+        this.currentColorId = indexId;
+      },
+    },
   },
   methods: {
-    info() {
-      console.log(this.productData.colors);
+    ...mapActions(['addProductToCart']),
+    increment() {
+      this.productCount += 1;
+    },
+    dicrement() {
+      this.productCount -= 1;
+    },
+    changeImage(id) {
+      const indexId = this.getColors.findIndex((item) => item.colorProductId === id);
+      this.currentColorId = indexId;
+    },
+    changeTab(tab) {
+      this.currentTab = tab;
     },
     loadProduct() {
       return axios.get(`https://vue-moire.skillbox.cc/api/products/${this.$route.params.id}`)
         .then((response) => this.productData = [response.data]);
+    },
+    addToCart() {
+      this.addProductToCart({
+        productId: this.product.id,
+        colorId: this.activeColorId,
+        sizeId: this.currentSizeId,
+        amount: this.productCount,
+      });
     },
   },
   created() {

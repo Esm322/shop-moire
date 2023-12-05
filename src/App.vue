@@ -14,12 +14,7 @@
           8 800 600 90 09
         </a>
 
-        <a class="header__cart" href="cart.html" aria-label="Корзина с товарами">
-          <svg width="19" height="24">
-            <use xlink:href="#icon-cart"></use>
-          </svg>
-          <span class="header__count" aria-label="Количество товаров">3</span>
-        </a>
+        <CartIndicator/>
       </div>
     </header>
 
@@ -121,5 +116,24 @@
 </template>
 
 <script>
+import CartIndicator from '@/components/CartIndicator.vue';
+import { mapActions, mapMutations } from 'vuex';
 
+export default {
+  components: {
+    CartIndicator,
+  },
+  methods: {
+    ...mapActions(['loadCart']),
+    ...mapMutations(['updateUserAccessKey']),
+  },
+  created() {
+    const userAccessKey = localStorage.getItem('userAccessKey');
+    if (userAccessKey) {
+      this.updateUserAccessKey(userAccessKey);
+    }
+
+    this.loadCart();
+  },
+};
 </script>

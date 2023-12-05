@@ -17,6 +17,8 @@ module.exports = {
     'vuejs-accessibility/label-has-for' : 'off',
     "arrow-body-style": "off",
     'no-return-assign': 'off',
+    'max-len': 'off',
+    'dot-notation': 'off',
     // 'import/prefer-default-export': 'off',
     'object-shorthand': 'off',
     'prefer-destructuring': 'off',

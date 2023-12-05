@@ -14,4 +14,17 @@ export default {
   setSeasons(state, seasonsData) {
     state.seasonsData = seasonsData;
   },
+  updateProductsCartData(state, productsCartData) {
+    state.productsCartData = productsCartData;
+  },
+  updateUserAccessKey(state, accessKey) {
+    state.userAccessKey = accessKey;
+  },
+  syncProductsCart(state) {
+    state.cartData = state.productsCartData.map((products) => {
+      return {
+        ...products,
+      };
+    });
+  },
 };
