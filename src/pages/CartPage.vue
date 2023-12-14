@@ -19,7 +19,7 @@
           Корзина
         </h1>
         <span class="content__info">
-          3 товара
+          {{ totalAmount }} товара
         </span>
       </div>
     </div>
@@ -27,7 +27,34 @@
     <section class="cart">
       <form class="cart__form form" action="#" method="POST">
         <div class="cart__field">
-          <CartItem/>
+          <div v-show="isCartLoading" style="
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          height: 40vh;">
+            <div class="spinner-4"></div>
+            <h2 style="padding-top: 25px;">
+              Загрузка товаров корзины...
+            </h2>
+          </div>
+
+          <div class="cart__list" v-show="isCartLoadingFailed">
+            <p style="padding-top: 25px;text-align: center;">
+              Похоже произошла ошибка. Попробуйте перезагрузить страницу.
+            </p>
+          </div>
+
+          <CartItem v-for="product in products" :key="product.id"
+          :id="product.id"
+          :price="product.price"
+          :title="product.title"
+          :color-code="product.colorCode"
+          :color-title="product.colorTitle"
+          :amount="product.quantity"
+          :image="product.image"
+          :productId="product.productId"/>
         </div>
 
         <div class="cart__block">
@@ -35,12 +62,14 @@
             Мы&nbsp;посчитаем стоимость доставки на&nbsp;следующем этапе
           </p>
           <p class="cart__price">
-            Итого: <span>4 070 ₽</span>
+            Итого: <span>{{ prettyTotalPrice }}</span>
           </p>
 
-          <button class="cart__button button button--primery" type="submit">
+          <router-link tag="button" :to="{name: 'order'}" type="submit"
+          class="cart__button button button--primery"
+          v-if="cart.length">
             Оформить заказ
-          </button>
+          </router-link>
         </div>
       </form>
     </section>
@@ -49,29 +78,39 @@
 
 <script>
 import CartItem from '@/components/CartItem.vue';
-import { mapActions, mapGetters } from 'vuex';
+import { mapGetters, mapState } from 'vuex';
+import numberFormat from '@/helpers';
 
 export default {
   components: {
     CartItem,
   },
   computed: {
+    ...mapState(['isCartLoading', 'isCartLoadingFailed']),
     ...mapGetters({
       productsCart: 'getCartDetailsProduct',
+      totalAmount: 'getCartProductsAmount',
+      totalPrice: 'getCartTotalPrice',
+      cart: 'getCart',
     }),
     products() {
       return this.productsCart ? this.productsCart.map((product) => {
         return {
           ...product,
+          id: product.id,
+          productId: product.product.id,
+          price: product.price,
+          title: product.product.title,
+          colorCode: product.color.color.code,
+          colorTitle: product.color.color.title,
+          image: product.color.gallery ? product.color.gallery[0].file.url
+            : 'https://westsiderc.org/wp-content/uploads/2019/08/Image-Not-Available.png',
         };
       }) : [];
     },
-  },
-  methods: {
-    ...mapActions(['loadCart']),
-  },
-  created() {
-    this.loadCart();
+    prettyTotalPrice() {
+      return numberFormat(this.totalPrice);
+    },
   },
 };
 </script>

@@ -12,4 +12,27 @@ export default {
       };
     });
   },
+  getCartProductsAmount(state, getters) {
+    return getters.getCartDetailsProduct.length;
+  },
+  getCartTotalPrice(state, getters) {
+    return getters.getCartDetailsProduct
+      .reduce((acc, item) => (item.quantity * item.price) + acc, 0);
+  },
+  getTotalProductsAmount(state, getters) {
+    return getters.getCartDetailsProduct.reduce((acc, item) => (item.quantity + acc), 0);
+  },
+  getOrderDeatails(state) {
+    return {
+      ...state.orderData,
+      items: state.orderData.basket.items.map((item) => {
+        return {
+          ...item,
+        };
+      }),
+    };
+  },
+  getOrderTotalAmount(state, getters) {
+    return getters.getOrderDeatails.items.reduce((acc, item) => item.quantity + acc, 0);
+  },
 };

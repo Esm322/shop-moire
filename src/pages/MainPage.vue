@@ -17,11 +17,32 @@
       :price-from.sync="filterPriceFrom"
       :price-to.sync="filterPriceTo"
       :category-id.sync="filterCategoryId"
+      :color-id.sync="filterColorId"
       :material-id.sync="filterMaterialId"
-      :season-id.sync="filterSeasonId"/>
+      :season-id.sync="filterSeasonId"
+      :products-per-page.sync="productsPerPage"/>
 
       <section class="catalog">
-        <ProductsList :products="products"/>
+        <div v-if="isProductsLoading" style="
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;">
+          <div class="spinner-4"></div>
+          <h2 style="padding-top: 25px;">
+            Загрузка списка товара...
+          </h2>
+        </div>
+
+        <ProductsList :products="products" v-else/>
+
+        <div style="margin: 0 auto;" v-show="isProductsLoadingFailed">
+          <p>
+            Похоже произошла ошибка. Попробуйте перезагрузить страницу.
+          </p>
+        </div>
 
         <BasePagination
         v-model="page"
@@ -37,16 +58,18 @@ import ProductsList from '@/components/ProductsList.vue';
 import BasePagination from '@/components/BasePagination.vue';
 import ProductFilter from '@/components/ProductFilter.vue';
 import { mapActions, mapState } from 'vuex';
+import numberFormat from '@/helpers';
 
 export default {
   data() {
     return {
       page: 1,
-      productsPerPage: 5,
+      productsPerPage: 4,
 
       filterPriceFrom: 0,
       filterPriceTo: 0,
       filterCategoryId: 0,
+      filterColorId: 0,
       filterSeasonId: [],
       filterMaterialId: [],
     };
@@ -57,11 +80,12 @@ export default {
     ProductFilter,
   },
   computed: {
-    ...mapState(['productsData']),
+    ...mapState(['productsData', 'isProductsLoading', 'isProductsLoadingFailed']),
     products() {
       return this.productsData ? this.productsData.items.map((product) => {
         return {
           ...product,
+          price: numberFormat(product.price),
           colors: product.colors.map((color) => {
             return {
               colorProductId: color.id,
@@ -111,10 +135,16 @@ export default {
     filterCategoryId() {
       this.loadProduct();
     },
+    filterColorId() {
+      this.loadProduct();
+    },
     filterMaterialId() {
       this.loadProduct();
     },
     filterSeasonId() {
+      this.loadProduct();
+    },
+    productsPerPage() {
       this.loadProduct();
     },
   },

@@ -1,5 +1,17 @@
 <template>
-  <main class="content container">
+  <div v-if="isProductLoading" style="
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 60vh;">
+      <div class="spinner-4"></div>
+      <h2 style="padding-top: 25px;">
+        Загрузка товара...
+      </h2>
+  </div>
+  <main class="content container" v-else>
     <div class="content__top">
       <ul class="breadcrumbs">
         <li class="breadcrumbs__item">
@@ -27,11 +39,11 @@
           :alt="product[0].title">
         </div>
         <ul class="pics__list">
-          <li class="pics__item" v-for="image in getColors" :key="image.colorProductId">
+          <li class="pics__item" v-for="image in getColors" :key="image.colorId">
             <a href="" class="pics__link"
-            :class="{'pics__link--current': image.colorProductId === activeColorId}"
-            @click.prevent="changeImage(image.colorProductId)"
-            @keyup.enter="changeImage(image.colorProductId)">
+            :class="{'pics__link--current': image.colorId === activeColorId}"
+            @click.prevent="changeImage(image.colorId)"
+            @keyup.enter="changeImage(image.colorId)">
               <img width="98" height="98" :src="image.image"
               :alt="product[0].title">
             </a>
@@ -70,7 +82,7 @@
               </div>
 
               <b class="item__price">
-                {{ product[0].price }} ₽
+                {{ totalProductPrice }}
               </b>
             </div>
 
@@ -78,13 +90,13 @@
               <fieldset class="form__block">
                 <legend class="form__legend">Цвет</legend>
                 <ul class="colors colors--black">
-                  <li class="colors__item" v-for="color in getColors" :key="color.colorProductId">
+                  <li class="colors__item" v-for="color in getColors" :key="color.colorId">
                     <label class="colors__label"
-                    @click.prevent="changeImage(color.colorProductId)"
-                    @keyup.enter="changeImage(color.colorProductId)">
+                    @click.prevent="changeImage(color.colorId)"
+                    @keyup.enter="changeImage(color.colorId)">
                       <input class="colors__radio sr-only" type="radio" name="color-item"
                       v-model="activeColorId"
-                      :value="color.colorProductId"
+                      :value="color.colorId"
                       :checked="activeColorId">
                       <span class="colors__value" :style="{'background-color': color.colorCode}">
                       </span>
@@ -107,9 +119,13 @@
               </fieldset>
             </div>
 
-            <button class="item__button button button--primery" type="submit">
+            <button class="item__button button button--primery" type="submit" :disabled="isAddLoading">
               В корзину
             </button>
+            <div style="padding-top: 10px;" v-show="isAddLoading">
+              Добавляем товар в корзину...
+            </div>
+            <div style="padding-top: 10px;" v-if="isAddLoadingEnded">Товар добавлен в корзину</div>
           </form>
         </div>
       </div>
@@ -145,7 +161,8 @@
 import BaseItemInformation from '@/components/BaseItemInformation.vue';
 import BaseItemDelivery from '@/components/BaseItemDelivery.vue';
 import axios from 'axios';
-import { mapActions } from 'vuex';
+import { mapActions, mapState } from 'vuex';
+import numberFormat from '@/helpers';
 
 export default {
   data() {
@@ -157,6 +174,9 @@ export default {
       productCount: 1,
       currentColorId: 0,
       currentSizeId: 0,
+
+      isProductLoading: false,
+      isProductLoadingFailed: false,
     };
   },
   components: {
@@ -164,10 +184,12 @@ export default {
     BaseItemDelivery,
   },
   computed: {
+    ...mapState(['isAddLoading', 'isAddLoadingFailed', 'isAddLoadingEnded']),
     product() {
       return this.productData ? this.productData.map((item) => {
         return {
           ...item,
+          price: item.price,
           categoryTitle: item.category.title,
           colorsGallery: item.colors.map((color) => {
             return {
@@ -196,12 +218,15 @@ export default {
     },
     activeColorId: {
       get() {
-        return this.getColors[this.currentColorId].colorProductId;
+        return this.getColors[this.currentColorId].colorId;
       },
       set(id) {
-        const indexId = this.getColors.findIndex((item) => item.colorProductId === id);
+        const indexId = this.getColors.findIndex((item) => item.colorId === id);
         this.currentColorId = indexId;
       },
+    },
+    totalProductPrice() {
+      return numberFormat(this.productCount * this.product[0].price);
     },
   },
   methods: {
@@ -213,19 +238,26 @@ export default {
       this.productCount -= 1;
     },
     changeImage(id) {
-      const indexId = this.getColors.findIndex((item) => item.colorProductId === id);
+      const indexId = this.getColors.findIndex((item) => item.colorId === id);
       this.currentColorId = indexId;
     },
     changeTab(tab) {
       this.currentTab = tab;
     },
     loadProduct() {
+      this.isProductLoading = true;
+      this.isProductLoadingFailed = false;
       return axios.get(`https://vue-moire.skillbox.cc/api/products/${this.$route.params.id}`)
-        .then((response) => this.productData = [response.data]);
+        .then((response) => this.productData = [response.data])
+        .catch(() => {
+          this.isProductLoading = false;
+          this.isProductLoadingFailed = true;
+        })
+        .finally(() => this.isProductLoading = false);
     },
     addToCart() {
       this.addProductToCart({
-        productId: this.product.id,
+        productId: this.$route.params.id,
         colorId: this.activeColorId,
         sizeId: this.currentSizeId,
         amount: this.productCount,
